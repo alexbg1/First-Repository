@@ -1,0 +1,113 @@
+---
+title: "Project 1"
+author: "Alexandra Beja-Glasser"
+date: "January 28, 2019"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, warnings=F}
+library(gutenbergr)
+head(gutenberg_authors)
+gutenberg_authors[300:310,]
+#gutenberg_works[author == "Twain, Mark"] 
+
+#ANALYSIS OF HUCK FINN
+huck_finn <- gutenberg_download(76)
+#huck_finn$text
+words <- strsplit(huck_finn$text, "\\W+")
+wordsV <- tolower(unlist(words))
+wordsV <- wordsV[wordsV != ""]   #list of all words in Huck Finn
+wordFreq <-table(wordsV)  #list of unique words and their frequencies
+head(sort(wordFreq, decreasing=T), n=20)  #20 most frequent words
+
+plot(1:length(wordFreq), sort(wordFreq, decreasing=T), main="Word Rank versus Frequency", xlab="Rank", ylab="Frequency")
+#plot of word rank VS frequency
+
+plot(log(1:length(wordFreq)), sort(log(wordFreq), decreasing=T), main="Log-Scale of Word Rank versus Frequency")
+#log-log plot of word rank VS frequency
+
+
+#ANALYSIS OF FRANKENSTEIN
+frankenstein <- gutenberg_download(84)
+words_frank <- strsplit(frankenstein$text, "\\W+")
+wordsV_frank <- tolower(unlist(words_frank))
+wordsV_frank <- wordsV_frank[wordsV_frank != ""]  #list of all words in Frankenstein
+wordFreq_frank <-table(wordsV_frank)   #list of unique words and their frequencies
+head(sort(wordFreq_frank, decreasing=T), n=20)   #20 most frequent words
+
+plot(1:length(wordFreq_frank), sort(wordFreq_frank, decreasing=T), main="Word Rank versus Frequency", xlab="Rank", ylab="Frequency")
+#plot of word rank VS frequency in Frankenstein
+
+plot(log(1:length(wordFreq_frank)), sort(log(wordFreq_frank), decreasing=T), main="Log-Scale of Word Rank versus Frequency")
+#log-log plot of word rank VS frequency in Frankenstein
+
+
+#ANALYSIS OF MACBETH
+macbeth <- gutenberg_download(1533)
+words_mac <- strsplit(macbeth$text, "\\W+")
+wordsV_mac <- tolower(unlist(words_mac))
+wordsV_mac <- wordsV_mac[wordsV_mac != ""]  #list of all words in Macbeth
+wordFreq_mac <-table(wordsV_mac)   #list of unique words and their frequencies
+head(sort(wordFreq_mac, decreasing=T), n=20)   #20 most frequenct words
+
+plot(1:length(wordFreq_mac), sort(wordFreq_mac, decreasing=T), main="Word Rank versus Frequency", xlab="Rank", ylab="Frequency")
+#plot of word rank VS frequency in Macbeth
+
+plot(log(1:length(wordFreq_mac)), sort(log(wordFreq_mac), decreasing=T), main="Log-Scale of Word Rank versus Frequency")
+#log-log plot of word rank VS frequency in Macbeth
+
+
+```
+
+
+
+```{r, warnings=F}
+library(readxl)
+
+#PART II
+
+#QUESTION 1
+profanity <- read_excel("Rdata/ProfanityExp2_CleanR.xlsx")
+#View(profanity)
+names(profanity)
+profanity[,3]
+boxplot(profanity[,3])  #boxplot of QualtricsMeanGoodCurse
+summary(profanity[,3])  #summary statistics of QualtricsMeanGoodCurse
+
+
+#QUESTION 2
+hist(profanity$Valence) #histogram of Valence, which is numeric
+hist(profanity$Arousal) #histogram of Arousal, which is numeric
+plot(factor(profanity$N_Lett)) #barplot of Number of Letters, which I am treating as categorical (each discrete number has its own category)
+plot(factor(profanity$N_Syll)) #barplot of Number of Syllables, which I am treating as categorical (each discrete number has its own category)
+plot(factor(profanity$Animate_Not)) #barplot of whether or not a word refers to something Animate, which is a categorical variable
+
+
+#QUESTION3
+
+#Hypothesis: Words with fewer syllables make the best curse words
+plot(profanity$N_Syll, profanity$QualtricsMeanGoodCurse)
+cor(profanity$N_Syll, profanity$QualtricsMeanGoodCurse) #correlation: r = -0.29
+#Conclusion: There is a weak negative correlation between number of syllables and how good a profanity prefix is
+
+#Hypothesis: Words with fewer letters make the best curse words
+plot(profanity$N_Lett, profanity$QualtricsMeanGoodCurse)
+cor(profanity$N_Lett, profanity$QualtricsMeanGoodCurse) #correlation: r= -0.25
+#conclusion: There is a weak negative correlation between number of letters and how good a profanity prefix is
+
+#Hypothesis: Words with high frequencies make the best curse words
+plot(profanity$Frequency, profanity$QualtricsMeanGoodCurse)
+cor(profanity$Frequency, profanity$QualtricsMeanGoodCurse) #correlation: r= 0.08
+#Conclusion: There does not seem to be any correlation between the frequency of a word and how good of a profanity prefix it is
+
+
+```
+
