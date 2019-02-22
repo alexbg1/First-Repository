@@ -1,0 +1,305 @@
+---
+title: "STOR 565 Spring 2019 Homework 3"
+author: "Alexandra Beja-Glasser"
+output:
+  pdf_document: default
+  html_document: default
+subtitle: \textbf{Due on 02/14/2018 in Class}
+header-includes: \usepackage{amsgen,amsmath,amstext,amsbsy,amsopn,amssymb,mathabx,amsthm,bm,bbm}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if(!require(ISLR)) { install.packages("ISLR", repos = "http://cran.us.r-project.org"); library(ISLR) }
+if(!require(leaps)) { install.packages("leaps", repos = "http://cran.us.r-project.org"); library(leaps) }
+if(!require(glmnet)) { install.packages("glmnet", repos = "http://cran.us.r-project.org"); library(glmnet) }
+if(!require(pls)) { install.packages("pls", repos = "http://cran.us.r-project.org"); library(pls) }
+library(readr)
+```
+\theoremstyle{definition}
+\newtheorem*{hint}{Hint}
+
+\theoremstyle{remark}
+\newtheorem*{rmk}{Remark}
+
+*Remark.* This homework aims to help you further understand the model selection techniques in linear model. Credits for **Theoretical Part** and **Computational Part** are in total 100 pt. For **Computational Part** , please complete your answer in the **RMarkdown** file and summit your printed PDF homework created by it.
+
+## Computational Part
+
+**Hint.** Before starting your work, carefully read Textbook Chapter 6.5-6.7 (Lab 1-3). Mimic the related analyses you learn from it. Related packages have been loaded in setup.
+
+1. (Model Selection, Textbook 6.8, *18 pt*) In this exercise, we will generate simulated data, and will then use this data to perform model selection.
+
+(a) Use the `rnorm` function to generate a predictor $\bm{X}$ of length $n = 100$, as well as a noise vector $\bm{\epsilon}$ of length $n = 100$. Do not print the entire vector.
+```{r}
+set.seed(1)
+X = rnorm(100)
+eps = rnorm(100)
+
+```
+    
+**Hint.** Before generating random numbers, fix your favourite random seed by `set.seed` so that your result is reproducible as you carry forward your exploration.
+
+(b) Generate a response vector $\bm{Y}$ of length $n = 100$ according to the model $$ Y = \beta_0 + \beta_1 X + \beta_2 X^2 + \beta_3 X^3 + \epsilon, $$ where $\beta_0 = 3$, $\beta_1 = 2$, $\beta_2 = -3$, $\beta_3 = 0.3$. Do not print the entire vector.
+```{r}
+beta0 = 3
+beta1 = 2
+beta2 = -3
+beta3 = 0.3
+Y = beta0 + beta1 * X + beta2 * X^2 + beta3 * X^3 + eps
+
+```
+
+(c) Use the `regsubsets` function from `leaps` package to perform best subset selection in order to choose the best model containing the predictors $(X, X^2, \cdots, X^{10})$. 
+    
+What is the best model obtained according to $C_p$, BIC, and adjusted $R^2$? Show some plots to provide evidence for your answer, and report the coefficients of the best model obtained.
+    
+```{r}
+data = data.frame(y = Y, x = X)
+model = regsubsets(y ~ poly(x, 10, raw = T), data = data, nvmax = 10)
+model_summary = summary(model)
+
+
+which.min(model_summary$cp)
+which.min(model_summary$bic)
+which.max(model_summary$adjr2)
+#the best model according to Cp, BIC, and Adjusted R^2 is the one with a subset of size 3
+
+par(mfrow = c(1, 3))
+plot(model_summary$cp, xlab = "Subset Size", ylab = "Cp", type = "l")
+points(3, model_summary$cp[3], col = "blue", lwd=5)
+
+plot(model_summary$bic, xlab = "Subset Size", ylab = "BIC", type = "l")
+points(3, model_summary$bic[3], col = "blue", lwd=5)
+
+plot(model_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R^2", type = "l")
+points(3, model_summary$adjr2[3], col = "blue", lwd=5)
+
+#coefficients of the best model
+coef(model, id = 3)
+
+
+```
+
+(d) Repeat (c), using forward stepwise selection and also using backwards stepwise selection. How does your answer compare to the results in (c)? You must show a summary of the selected model or other evidence to support your statements.
+    
+```{r}
+forward_model = regsubsets(y ~ poly(x, 10, raw = T), data = data, nvmax = 10, method = "forward")
+forward_summary = summary(forward_model)
+which.min(forward_summary$cp)
+which.min(forward_summary$bic)
+which.max(forward_summary$adjr2)
+#the best model using forward-stepwise regression is the one with a subset of size 3
+
+backward_model = regsubsets(y ~ poly(x, 10, raw = T), data = data, nvmax = 10, method = "backward")
+backward_summary = summary(backward_model)
+which.min(backward_summary$cp)
+which.min(backward_summary$bic)
+which.max(backward_summary$adjr2)
+#the best model using backward-stepwise regression is also the one with a subset of size 3
+
+
+par(mfrow = c(2, 3))
+plot(forward_summary$cp, xlab = "Subset Size", ylab = "Forward Cp", type = "l")
+points(3, forward_summary$cp[3], col = "purple", lwd=5)
+
+plot(forward_summary$bic, xlab = "Subset Size", ylab = "Forward BIC", type = "l")
+points(3, forward_summary$bic[3], col = "purple", lwd=5)
+
+plot(forward_summary$adjr2, xlab = "Subset Size", ylab = "Forward Adjusted R^2", type = "l")
+points(3, forward_summary$adjr2[3], col = "purple", lwd=5)
+
+
+plot(backward_summary$cp, xlab = "Subset Size", ylab = "Backward Cp", type = "l")
+points(3, backward_summary$cp[3], col = "orange", lwd=5)
+
+plot(backward_summary$bic, xlab = "Subset Size", ylab = "Backward BIC", type = "l")
+points(3, backward_summary$bic[3], col = "orange", lwd=5)
+
+plot(backward_summary$adjr2, xlab = "Subset Size", ylab = "Backward Adjusted R^2", type = "l")
+points(3, backward_summary$adjr2[3], col = "orange", lwd=5)
+
+```
+
+(e) Now fit a LASSO model with `glmnet` function from `glmnet` package to the simulated data, again using $(X,X^2,\cdots,X^{10})$ as predictors. Use 5-fold cross-validation to select the optimal value of $\lambda$. Create plots of the cross-validation error as a function of $\lambda$. Report the resulting coefficient estimates, and discuss the results obtained.
+    
+    ```{r}
+x_matrix = model.matrix(y ~ poly(x, 10, raw = T), data = data)[, -1]
+lasso_model = cv.glmnet(x_matrix, Y, alpha = 1)
+best_lambda = lasso_model$lambda.min
+best_lambda
+
+plot(lasso_model)
+
+best_lambda_model = glmnet(x_matrix, Y, alpha = 1)
+predict(best_lambda_model, s = best_lambda, type = "coefficients")
+#the LASSO model picks X5 instead of X3. It also picks X7, but has a very small coefficient.
+
+```
+
+
+(f) Now generate a response vector $Y$ according to the model $$Y = \beta_0 + \beta_7 X^7 + \epsilon,$$ where $\beta_7 = 7$, and perform best subset selection and the LASSO. Discuss the results obtained.
+    
+    ```{r}
+beta7 = 7
+Y = beta0 + beta7 * X^7 + eps
+
+# Predict using regsubsets
+data = data.frame(y = Y, x = X)
+model2 = regsubsets(y ~ poly(x, 10, raw = T), data = data, nvmax = 10)
+model2_summary = summary(model2)
+
+which.min(model2_summary$cp) #best model has subset of size 2
+which.min(model2_summary$bic) #best model has subset of size 1
+which.max(model2_summary$adjr2) #best model has subset of size 4
+coef(model2, id=c(1, 2, 4))
+
+x_matrix2 = model.matrix(y ~ poly(x, 10, raw = T), data = data)[, -1]
+lasso_model2 = cv.glmnet(x_matrix, Y, alpha = 1)
+plot(lasso_model2)
+best_lambda2 = lasso_model2$lambda.min
+best_lambda2
+
+model3 = glmnet(x_matrix, Y, alpha = 1)
+predict(model3, s = best_lambda2, type = "coefficients")
+#the LASSO model gives us an intercept of 3.9, 
+#which is different from the intercept of 3 we got from best subset selection 
+#(from all models containing best Cp, BIC, Adjusted R^2)
+
+```
+
+    
+---
+    
+    
+2. (Prediction, *20 pt*) In this exercise, we will try to develop a prediction model for wins in a basketball season for a team based on a host of other factors. The starting point is to load the nba-teams-2017 data set (which was scraped by Gaston Sanchez at Berkeley). 
+
+(a) Do some exploratory data analysis by picking 6-7 features that you think might be interesting and explore relationship between these features by making a scatterplot matrix like the following (you **do not** have to use the same features I am using!):
+
+```{r}
+bball <- read.csv("nba-teams-2017.csv")
+
+plot(bball[,c("wins", "points", "field_goals", "points3", "free_throws", "personal_fouls")])
+
+library(psych)
+pairs.panels(bball[,c("wins", "points", "field_goals", "points3", "free_throws", "personal_fouls")], 
+             method = "pearson", density = F, ellipses = F)
+
+
+```
+
+*NOTE: You may remove the includegraphics statements below when knitting your own response, if they are giving you trouble*
+
+
+(b) The aim is now to predict *wins* based on the other features. First explain why you would remove the "losses" column from the above data set? Would you necessarily remove any other columns?
+
+```{r}
+#I'm removing the losses because it  is dependent on "wins", which is our response variable. 
+#Losses is equal to games_played - wins.
+#I'm also removing all proportional variables (ie, "win_prop", "field_goals_prop", "points3_prop", 
+#and "free_throws_prop"), since they are all proportions of variables that are already included.
+#And finally, I'm removing "team", since the name of the team shouldn't have any effect on wins.
+
+bball <- bball[,c(-1, -4, -5, -10, -13, -16)]
+#View(bball)
+```
+
+
+(c) Use ridge regression with 5 fold cross-validation to choose the optimal tuning parameter and report your model along with your test error as found by cross-validation for that choice of $\lambda$. 
+
+```{r, warning=F}
+x = model.matrix(wins ~., bball)[,-1]
+y = bball$wins
+
+grid <- 10^seq(10, -2, length = 100)
+ridge_model <- glmnet(x, y, alpha = 0, lambda = grid)
+plot(ridge_model)
+
+ell2.norm <- numeric()
+for(i in 1:length(grid)){
+ell2.norm[i] <- sqrt(sum(coef(ridge_model)[-1, i]^2))
+}
+#plot(x = grid, y = ell2.norm, xlab = expression(lambda), ylab = "L2 Norm", xlim = c(10,10000))
+train <- sample(1:nrow(x), nrow(x) / 2)
+test <- (-train)
+y.train <- y[train]
+y.test <- y[test]
+ridge_model_train <- glmnet(x[train, ], y.train, alpha = 0, lambda = grid)
+cv.out <- cv.glmnet(x[train, ], y.train, alpha = 0)
+plot(cv.out)
+best.lambda <- cv.out$lambda.min
+best.lambda
+plot(cv.out)
+abline(v = log(best.lambda), col = "blue", lwd = 2)
+ridge.pred <- predict(ridge_model_train, s = best.lambda, newx = x[test, ])
+mspe.ridge <- mean((ridge.pred - y.test)^2)
+mspe.ridge
+final.model <- glmnet(x, y, alpha = 0, lambda = best.lambda)
+Coef.Ridge <- coef(final.model)[1:20, ]
+Coef.Ridge
+
+
+```
+
+
+(d) Fit a LASSO model on the training set, with $\lambda$ chosen by 5-fold cross-validation. Report the test error obtained, along with the number of non-zero coefficient estimates.
+
+```{r}
+lasso.model <- glmnet(x, y, alpha = 1, lambda = grid)
+plot(lasso.model)
+
+lasso.model.train <- glmnet(x[train, ], y.train, alpha = 1, lambda = grid)
+set.seed(1) #in case R forgot
+cv.out <- cv.glmnet(x[train, ], y.train, alpha = 1)
+plot(cv.out)
+best.lambda <- cv.out$lambda.min
+best.lambda
+plot(cv.out)
+abline(v = log(best.lambda), col = "blue", lwd = 2)
+
+lasso.pred <- predict(lasso.model.train, s = best.lambda, newx = x[test,])
+mspe.lasso <- mean((lasso.pred - y.test)^2)
+mspe.lasso
+
+final.model <- glmnet(x, y, alpha = 1, lambda = best.lambda)
+Coef.Lasso <- coef(final.model)[1:20,]
+Coef.Lasso
+
+
+```
+
+
+---
+
+3. (Optional *12 pt*) Find a data set online (different from those in the book!). Put a link to where **we** can find this data set and describe why you were interested in this data set.  Carry out multivariate linear regression (as well as any general exploratory data analysis you think is relevant for example generating plots as in problem 2 (a)). Use subset selection as well as ridge regression and lasso to obtain models and interpret your results. Describe your findings to someone who might know no math or statistics. At the end of the day, you will have more fun if you find data that you truly care about!
+
+*This question is optional if you do some of the optional questions in the theory portion.*
+This data is about how to determine the "best" candy. It is from FiveThirtyEight.
+Link: https://github.com/fivethirtyeight/data/blob/master/candy-power-ranking/candy-data.csv
+
+```{r, warning=F}
+candy <- read_csv("candy-data.csv")
+#View(candy)
+
+#Trying to predict the overall "win" percentage (ie, how much people like it from a scale of 1 to 100)
+#of each candy
+candy <- data.frame(candy[,2:13])
+
+summary(lm(winpercent ~ ., data=candy))  #general linear model has  R^2 of 0.54
+
+x = candy[,1:11]
+y = candy[,12]
+candy_model = regsubsets(x=x, y=y, data = candy, nvmax = 10)
+candy_summary = summary(candy_model)
+candy_summary
+#it looks like the best 1-variable model is whether or not the candy contains chocolate
+
+which.min(candy_summary$cp) #the lowest Cp is the model with 6 variables
+which.min(candy_summary$bic) #the lowest BIC is the model with 3 variables
+which.max(candy_summary$adjr2) #the lowest Adjusted R^2 is the model with 7 variables
+
+grid <- 10^seq(10, -2, length = nrow(candy))
+#ridge_model <- glmnet(x, y, alpha = 0, lambda = grid)
+#lasso.model <- glmnet(x, y, alpha = 1, lambda = grid)
+
+```
