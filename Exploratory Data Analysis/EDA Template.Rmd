@@ -1,0 +1,98 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320.(01 OR 02) Group PLACE_GROUP_NUMBER_HERE (Ex: STOR 320.01 Group 12)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=TRUE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readr)
+
+# Import Data Below
+games <- read_csv("Video_Games_Sales_as_at_22_Dec_2016.csv")
+library(ggplot2)
+library(dplyr)
+library(stats)
+games <- mutate(games, User_Score = as.numeric(User_Score))
+
+```
+
+#Creator: Alexandra Beja-Glasser
+
+###Q1: Which platforms have had the highest critic and user ratings? And correlation between the two?
+
+```{r}
+#View(games)
+#table(games$Platform)
+
+games_score_naomit <- games %>% 
+  na.omit(Critic_Score | User_Score)
+
+ggplot(games_score_naomit, aes(x=factor(Platform), y=Critic_Score, fill=Platform)) + stat_summary(fun.y="mean", geom="bar") + theme_minimal() + coord_flip() + labs(title="Effect of Platform on Average Critic Score", y="Average Critic Score", x="Platform")
+
+ggplot(games_score_naomit, aes(x=factor(Platform), y=User_Score, fill=Platform)) + stat_summary(fun.y="mean", geom="bar") + theme_minimal() + coord_flip() + labs(title="Effect of Platform on Average User Score", y="Average User Score", x="Platform")
+
+
+summary(lm(Critic_Score ~ User_Score, data=games))
+
+
+c("Average Critic Score" = mean(games$Critic_Score, na.rm=T), 
+  "Average User Score" = 10*mean(games$User_Score, na.rm=T))
+
+
+```
+
+###Q2: How has the number of video game releases per year changed over time?
+
+```{r, warning=FALSE}
+
+games_year_naomit <- games %>% 
+  filter(Year_of_Release != "N/A") %>% 
+  mutate(Year_of_Release= as.numeric(Year_of_Release))
+
+table(games_year_naomit$Year_of_Release)
+
+ggplot(games_year_naomit, aes(x=Year_of_Release)) + geom_histogram(stat="count", fill=rainbow(39)) + coord_flip() + labs(title="Number of Video Games Releases per Year", y="Year of Release", x="Number of Games Released")
+
+games_year_naomit %>%
+  mutate(year = Year_of_Release - 1980) %>%
+  count(year) %>%
+  lm(n ~ year, .) %>%
+  summary()
+
+
+```
+
+#Interpreter: FIRSTNAME LASTNAME
+
+###Q1: What is the WAR statistic for different video games? (aka, what constitutes the "best" and "worst" video games)
+
+```{r, warning=F}
+games_war_naomit <- games %>%
+  na.omit(Global_Sales | Critic_Score | User_Score) %>%
+  filter(Year_of_Release != 'N/A') %>%
+  mutate(Year_of_Release = as.numeric(Year_of_Release)) %>%
+  na.omit(Rating) %>%
+  mutate(Rating = as.factor(Rating))
+
+
+summary(lm(Critic_Score ~ Global_Sales * User_Score * Year_of_Release * Rating, data=games_war_naomit))
+  
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
